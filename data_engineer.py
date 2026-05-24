@@ -6,7 +6,7 @@ results = pd.read_csv('Data/resultados/results.csv')
 results['date'] = pd.to_datetime(results['date'])
 results = results.sort_values('date').reset_index(drop=True)
 
-# ── ELO + H2H (iteración cronológica única) ────────────────────────────────
+# ELO + H2H (iteración cronológica única) 
 INITIAL_ELO = 1000
 HOME_ADVANTAGE = 100
 
@@ -46,7 +46,7 @@ for i, row in results.iterrows():
     elo_home_pre[i] = r_home
     elo_away_pre[i] = r_away
 
-    # ── H2H pre-partido ──
+    # H2H pre-partido
     key = (min(home, away), max(home, away))
     wins = draws = losses = gd = 0
     for rec in h2h_records[key]:
@@ -62,7 +62,7 @@ for i, row in results.iterrows():
     h2h_home_gd[i]     = gd
     h2h_total[i]       = wins + draws + losses
 
-    # ── ELO update ──
+    # ELO update 
     advantage = 0 if neutral else HOME_ADVANTAGE
     exp_home  = 1 / (1 + 10 ** ((r_away - (r_home + advantage)) / 400))
     actual_home = 1.0 if h_score > a_score else (0.5 if h_score == a_score else 0.0)
@@ -83,7 +83,7 @@ results['h2h_total']      = h2h_total
 
 df = results.copy()
 
-# ── Formato largo ──────────────────────────────────────────────────────────
+#Formato largo 
 home_df = df[['date', 'home_team', 'away_team', 'home_score', 'away_score', 'elo_home', 'elo_away']].copy()
 home_df.columns = ['date', 'team', 'opponent', 'gf', 'gc', 'elo', 'elo_opp']
 home_df['is_home'] = True
@@ -101,7 +101,7 @@ long['gd']          = long['gf'] - long['gc']
 long['clean_sheet'] = (long['gc'] == 0).astype(int)
 long['not_lost']    = (long['gf'] >= long['gc']).astype(int)
 
-# ── Rolling windows 3, 5, 10 ──────────────────────────────────────────────
+#  Rolling windows 3, 5, 10
 def make_roll(w):
     def mean_fn(x): return x.shift(1).rolling(w, min_periods=w).mean() * 100
     def sum_fn(x):  return x.shift(1).rolling(w, min_periods=w).sum()
@@ -119,7 +119,7 @@ for w in [3, 5, 10]:
     long[f'gd{sfx}']       = g['gd'].transform(sum_fn)
     long[f'cs{sfx}']       = g['clean_sheet'].transform(sum_fn)
 
-# ── Rachas actuales ────────────────────────────────────────────────────────
+#  Rachas actuales
 def streak_fn(x):
     arr = x.values
     out = np.zeros(len(arr), dtype=float)
@@ -131,12 +131,12 @@ long['win_streak']      = long.groupby('team')['win'].transform(streak_fn)
 long['loss_streak']     = long.groupby('team')['loss'].transform(streak_fn)
 long['unbeaten_streak'] = long.groupby('team')['not_lost'].transform(streak_fn)
 
-# ── ELO momentum (cambio en los últimos 5 partidos) ────────────────────────
+# ELO momentum (cambio en los últimos 5 partidos) 
 long['elo_momentum5'] = long.groupby('team')['elo'].transform(
     lambda x: x - x.shift(5)
 )
 
-# ── Volver a formato ancho ─────────────────────────────────────────────────
+# Volver a formato ancho 
 stats_cols = (
     [f'{stat}_last{w}' for w in [3, 5, 10]
      for stat in ['win_pct', 'draw_pct', 'loss_pct', 'gf', 'gc', 'gd', 'cs']]

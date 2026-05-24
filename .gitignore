@@ -7,3 +7,7 @@ __pycache__/
 dist/
 build/
 .DS_Store
+
+# Artefactos generados (no versionar)
+*.pkl
+features.csv
